@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  labels:
+    name: {{ .Values.name }}
+{{ include "labels.standard" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "labels.standard" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "labels.standard" . | nindent 8 }}
+    spec:
+      volumes:
+        - name: {{ .Values.name }}
+          configMap:
+            name: {{ .Values.name }}
+      containers:
+      - name: {{ .Values.name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          requests:
+            cpu:  {{ .Values.resources.server.requests.cpu }}
+            memory:  {{ .Values.resources.server.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.server.limits.cpu }}
+            memory:  {{ .Values.resources.server.limits.memory }}
+        volumeMounts:
+          - name: {{ .Values.name }}
+            mountPath: {{ .Values.rules.location }}
+        env:
+          - name: ELASTICSEARCH_HOST
+            value: "{{ .Values.elasticsearch.host }}"
+          - name: ELASTICSEARCH_PORT
+            value: "{{ .Values.elasticsearch.port }}"
+          - name: MAIL_SERVER_HOST
+            value: "{{ .Values.mailserver.host }}"
+          - name: MAIL_SERVER_PORT
+            value: "{{ .Values.mailserver.port }}"
+          - name: RULES_LOCATION
+            value: "{{ .Values.rules.location }}"
+        envFrom:
+        - secretRef:
+            name: {{ .Values.name }}-secrets
+  strategy:
+    type: RollingUpdate

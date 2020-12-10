@@ -1,0 +1,35 @@
+name: elasticmonitor
+app: elasticmonitor
+resources:
+  server:
+    requests:
+      memory: 200Mi
+      cpu: 10m
+    limits:
+      memory: 2000Mi
+      cpu: 1
+
+image:
+  repository: nazariene/elasticmonitor
+  pullPolicy: Always
+  tag: latest
+
+replicas: 1
+
+rules:
+  location: /app/resources/rules
+
+elasticsearch:
+  host: "localhost"
+  port: 9200
+  username: elastic
+  password: "password"
+
+mailserver:
+  host: "mail.mail.com"
+  port: 25
+  username:
+  password:
+  
+telegram:
+  token: "bottoken"

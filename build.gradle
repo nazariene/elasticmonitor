@@ -1,0 +1,64 @@
+plugins {
+	id 'org.springframework.boot' version '2.4.0'
+	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
+	id 'com.google.cloud.tools.jib' version '1.0.1'
+	id 'java'
+}
+
+group = 'ru.nazariene'
+version = '1.0-SNAPSHOT'
+sourceCompatibility = '11'
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	telegram_bot_version = '0.24'
+	handlebars_version = '4.1.2'
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation "org.springframework.boot:spring-boot-starter-mail"
+	implementation "org.springframework.boot:spring-boot-starter-quartz"
+	implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+
+	implementation "com.github.xabgesagtx:telegram-spring-boot-starter:${telegram_bot_version}"
+
+	implementation 'org.apache.commons:commons-lang3'
+
+	implementation "com.github.jknack:handlebars:${handlebars_version}"
+
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+test {
+	useJUnitPlatform()
+}
+
+jib {
+	from {
+		image = 'openjdk:16-alpine'
+	}
+	to {
+		image = 'nazariene/elasticmonitor'
+		tags = [version]
+	}
+
+	container {
+		environment = [
+				APP_NAME       : project.name,
+				APP_VERSION    : version,
+				JAVA_MAIN_CLASS: "ru.nazariene.elasticmonitor.ElasticMonitorApplication",
+		]
+	}
+}
