@@ -1,0 +1,146 @@
+name: "Tariffs with invalid characteristic.tariffId field (missing, null, empty)"
+
+#Schedule for rule (how often it will be checked). "cron" and "interval" are supported
+#At least one value is required!
+#cron has higher priority than interval
+trigger:
+  #cron: "0 4,34 * ? * * *"
+  interval: 1900              #Interval in seconds
+
+#Query to run against elasticsearch
+query:
+  index: offer
+  value: '{
+              "bool": {
+                "must": [
+                  {
+                    "bool": {
+                      "should": [
+                        {
+                          "term": {
+                            "type": "SoloTariff"
+                          }
+                        },
+                        {
+                          "term": {
+                            "type": "Bundle"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "bool": {
+                      "should": [
+                        {
+                          "bool": {
+                            "must_not": {
+                              "nested": {
+                                "path": "characteristics",
+                                "query": {
+                                  "term": {
+                                    "characteristics.name.exact": "tariffId"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "bool": {
+                            "must": [
+                              {
+                                "nested": {
+                                  "path": "characteristics",
+                                  "query": {
+                                    "nested": {
+                                      "path": "characteristics.values",
+                                      "query": {
+                                        "bool": {
+                                          "should": [
+                                            {
+                                              "bool": {
+                                                "must_not": {
+                                                  "exists": {
+                                                    "field": "characteristics.values.value"
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "term": {
+                                                "characteristics.values.value": "null"
+                                              }
+                                            },
+                                            {
+                                              "bool": {
+                                                "must_not": {
+                                                  "wildcard": {
+                                                    "characteristics.values.value": "*"
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "nested": {
+                                  "path": "characteristics",
+                                  "query": {
+                                    "term": {
+                                      "characteristics.name.exact": "tariffId"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+          }'
+
+#Condition to check "query" against. I.e. "query" results are compared against this condition to check if
+#condition was breached
+condition:
+  field: "/hits/total/value"     #field in query json response to check against
+  fieldType: int                 #field type of json field. Supported values: int, boolean, double, float, long, string
+  op: eq                         #comparison operation of "field". Supported values: eq, gte, gt, lt, lte
+  value: 0                       #value to check "field" against using "op" operator. Will be casted to type
+  #specified in "fieldType"
+
+transform:
+  index: offer
+  query: 123
+
+#Actions to execute when condition was breached
+#Supported values are: email, telegram, log (set via "type" field)
+action:
+  - name: Email to PCC
+    type: email
+    to:
+      - test@test.com
+      - test2@test.com
+    subject: "ERROR: Found Tariff Offers without characteristics.tariffId!"
+    body: "Found {{[search:/hits/total/value]}} Tariff Offers with invalid characteristics.tariffId under {{query.index}} index in {{[env:elasticsearch.host]}}\n\n\n"
+
+  - name: Log alert to console
+    type: log
+    message: "\u2757 \u2757 \u2757 \u2757 \n
+              Found {{[search:/hits/total/value]}} Tariff Offers with invalid characteristics.tariffId under {{query.index}} index in {{[env:elasticsearch.host]}} \n
+                          \u2757 \u2757 \u2757 \u2757"
+
+  - name: Send message to telegram channel
+    type: telegram
+    channelId: -452773100
+    message: "\u2757 \u2757 \u2757 \u2757 \n
+              Found {{[search:/hits/total/value]}} Tariff Offers with invalid characteristics.tariffId under {{query.index}} index in {{[env:elasticsearch.host]}} \n
+                          \u2757 \u2757 \u2757 \u2757"

@@ -28,7 +28,7 @@ public class RuleExecutionService {
         var conditionBreached = conditionVerificationService.verifyCondition(rule, searchResponse);
 
         if (!conditionBreached) {
-            log.debug("Condition for rule {} not breached. Skipping actions.", rule.getName());
+            log.info("Condition for rule {} not breached. Skipping actions.", rule.getName());
             return;
         } else {
             log.warn("Condition breached for rule {}! Executing actions", rule.getName());
